@@ -1,35 +1,14 @@
-import wx  # type: ignore
+# -*- coding: utf-8 -*-
 
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas  # type: ignore
-from matplotlib.widgets import Cursor
-from matplotlib.transforms import Affine2D
-from matplotlib.figure import Figure  # type: ignore
+###########################################################################
+## Python code generated with wxFormBuilder (version 3.10.1-88b0f50)
+## http://www.wxformbuilder.org/
+##
+## PLEASE DO *NOT* EDIT THIS FILE!
+###########################################################################
 
-
-
-from typing import Tuple, Optional, List, Union
-
-from configparser import ConfigParser
-
-from utils import *
-from conv_im import *
-
-import numpy as np  # type: ignore
-import matplotlib.pyplot as plt  # type: ignore
-import os
-
-
-FILLER = np.linspace(0.0, 1023.0, 1024)
-
-class MyApp(wx.App):
-    """Main application class."""
-
-    def __init__(self):
-        super().__init__(clearSigInt=True)
-
-        self.mainFrame = MyFrame(None)
-        self.mainFrame.Show()
-
+import wx
+import wx.xrc
 
 ###########################################################################
 ## Class MyFrame
@@ -104,18 +83,8 @@ class MyFrame ( wx.Frame ):
 		self.hslice_panel = wx.Panel( self.m_panel314, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
 		hslice_sizer = wx.BoxSizer( wx.VERTICAL )
 
-		# self.m_button5 = wx.Button( self.hslice_panel, wx.ID_ANY, u"MyButton", wx.DefaultPosition, wx.DefaultSize, 0 )
-		# hslice_sizer.Add( self.m_button5, 1, wx.EXPAND, 5 )
-
-
-		self.hslice_figure = Figure(tight_layout=True, figsize=(1,1))
-		self.hslice_axes = self.hslice_figure.add_subplot(111)
-		# self.hslice_axes.set_aspect('equal', adjustable='box')
-        # self.cursor = Cursor(self.axes, useblit=True, color="red")
-		self.hslice_canvas = FigureCanvas(self.hslice_panel, wx.ID_ANY, self.hslice_figure)
-
-		# self.m_button5 = wx.Button( self.hslice_panel, wx.ID_ANY, u"MyButton", wx.DefaultPosition, wx.DefaultSize, 0 )
-		hslice_sizer.Add( self.hslice_canvas, 1, wx.ALL|wx.EXPAND, 5)
+		self.m_button5 = wx.Button( self.hslice_panel, wx.ID_ANY, u"MyButton", wx.DefaultPosition, wx.DefaultSize, 0 )
+		hslice_sizer.Add( self.m_button5, 1, wx.EXPAND, 5 )
 
 
 		self.hslice_panel.SetSizer( hslice_sizer )
@@ -126,14 +95,8 @@ class MyFrame ( wx.Frame ):
 		self.vslice_panel = wx.Panel( self.m_panel314, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
 		vslice_sizer = wx.BoxSizer( wx.VERTICAL )
 
-		self.vslice_figure = Figure(tight_layout=True, figsize=(1,1))
-		self.vslice_axes = self.vslice_figure.add_subplot(111)
-		# self.hslice_axes.set_aspect('equal', adjustable='box')
-        # self.cursor = Cursor(self.axes, useblit=True, color="red")
-		self.vslice_canvas = FigureCanvas(self.vslice_panel, wx.ID_ANY, self.vslice_figure)
-
-		# self.m_button4 = wx.Button( self.vslice_panel, wx.ID_ANY, u"MyButton", wx.DefaultPosition, wx.DefaultSize, 0 )
-		vslice_sizer.Add( self.vslice_canvas, 1, wx.ALL|wx.EXPAND, 5 )
+		self.m_button4 = wx.Button( self.vslice_panel, wx.ID_ANY, u"MyButton", wx.DefaultPosition, wx.DefaultSize, 0 )
+		vslice_sizer.Add( self.m_button4, 1, wx.EXPAND, 5 )
 
 
 		self.vslice_panel.SetSizer( vslice_sizer )
@@ -144,19 +107,8 @@ class MyFrame ( wx.Frame ):
 		self.image_panel = wx.Panel( self.m_panel314, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
 		image_sizer = wx.BoxSizer( wx.VERTICAL )
 
-		self.image_figure = Figure(tight_layout=True)
-		self.image_axes = self.image_figure.add_subplot()
-		self.image_axes.set_aspect('equal', adjustable='box')
-        # self.cursor = Cursor(self.axes, useblit=True, color="red")
-		self.image_canvas = FigureCanvas(self.image_panel, wx.ID_ANY, self.image_figure)
-		self.image_canvas.mpl_connect('motion_notify_event', self.update_status_bar)
-		self.image_canvas.mpl_connect(
-            "button_press_event", self.on_press
-        )
-		self.image_canvas.Bind(wx.EVT_ENTER_WINDOW, self.change_cursor_coordinates)
-
-		# self.m_bitmap1 = wx.StaticBitmap( self.image_panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, 0 )
-		image_sizer.Add( self.image_canvas, 1, wx.ALL|wx.EXPAND, 5 )
+		self.m_bitmap1 = wx.StaticBitmap( self.image_panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, 0 )
+		image_sizer.Add( self.m_bitmap1, 1, wx.ALL|wx.EXPAND, 5 )
 
 
 		self.image_panel.SetSizer( image_sizer )
@@ -303,47 +255,7 @@ class MyFrame ( wx.Frame ):
 
 	# Virtual event handlers, override them in your derived class
 	def on_open( self, event ):
-		# event.Skip()
-		"""Open a raw data to process.
-    
-        When user clicks on "Open Text File" and find an appropriate file, 
-        this function imports the data to `self.data` and plots it on graph
-        panel.
-        Args:
-            event: wx.EVT_COMBOBOX. Checks that user have clicked on button.
-        Returns:
-            None
-        """
-		wildcard = "TSV files (*.tsv)|*.tsv"
-		dialog = wx.FileDialog(
-            self,
-            "Open Text Files",
-            wildcard=wildcard,
-            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
-        )
-		if dialog.ShowModal() == wx.ID_CANCEL:
-			return
-			
-		path = dialog.GetPath()
-		
-		if os.path.exists(path):
-			self.single_frame = np.loadtxt(path)
-			
-		self.draw_data()
-		# self.calc_btn.Enable(False)
-		
-		# draw_data(self.graph, self.data[:, 0], self.data[:, 1], name="Spectrum")
-		
-		# self.auto.Enable(True)
-		# self.calibration.Enable(True)
-		# self.auto_cal.Enable(True)
-		
-		# if self.graphs.IsShown():
-		# 	self.graphs.Hide()
-		# 	self.graph.Show()
-			
-		# self.Parent.Layout()
-		# self.Parent.Fit()
+		event.Skip()
 
 	def on_close( self, event ):
 		event.Skip()
@@ -389,35 +301,5 @@ class MyFrame ( wx.Frame ):
 
 	def on_gamma( self, event ):
 		event.Skip()
-
-	def draw_data(self) -> None:
-		self.image_axes.clear()
-		self.image_axes.imshow(self.single_frame)
-		# self.cursor = Cursor(self.image_axes, color='black', linewidth=2)
-		self.image_canvas.draw()
-
-	def update_status_bar(self, event) -> None:
-		if event.inaxes:
-			x, y = event.xdata, event.ydata
-			self.status_bar.SetStatusText("x= "+str(round(x))+"  y="+str(round(y)))
-			
-	def change_cursor_coordinates(self, event) -> None:
-		self.image_canvas.SetCursor(wx.Cursor(wx.CURSOR_CROSS))
-
-	def on_press(self, event) -> None:
-		if event.inaxes:
-			self.draw_vslice(round(event.xdata))
-			self.draw_hslice(round(event.ydata))
-
-	def draw_hslice(self, y) -> None:
-		self.hslice_axes.clear()
-		self.hslice_axes.plot(self.single_frame[:, y])
-		self.hslice_canvas.draw()
-
-	def draw_vslice(self, x):
-		self.vslice_axes.clear()
-		self.vslice_axes.plot(self.single_frame[x, :], FILLER)
-		self.vslice_canvas.draw()
-
 
 
