@@ -1,5 +1,7 @@
 import wx  # type: ignore
-
+from picam import PICam
+from picam.picam_types import PicamReadoutControlMode, PicamAdcQuality, PicamAdcAnalogGain, PicamTriggerDetermination
+from picam.picam_types import PicamTriggerResponse
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas  # type: ignore
 from matplotlib.widgets import Cursor
 from matplotlib.transforms import Affine2D
@@ -19,7 +21,7 @@ import matplotlib.pyplot as plt  # type: ignore
 import os
 
 
-FILLER = np.linspace(0.0, 1023.0, 1024)
+FILLER = np.linspace(1023.0, 0.0, 1024)
 
 class MyApp(wx.App):
     """Main application class."""
@@ -38,8 +40,10 @@ class MyApp(wx.App):
 class MyFrame ( wx.Frame ):
 
 	def __init__( self, parent ):
-		wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 864,692 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+		wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 1000,700 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
 
+		self.background = None
+		# self.Bind(wx.EVT_SIZE, self.on_resize)
 		self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
 
 		self.m_menubar2 = wx.MenuBar( 0 )
@@ -60,7 +64,7 @@ class MyFrame ( wx.Frame ):
 
 		self.SetMenuBar( self.m_menubar2 )
 
-		self.status_bar = self.CreateStatusBar( 1, wx.STB_SIZEGRIP, wx.ID_ANY )
+		self.status_bar = self.CreateStatusBar( 4, wx.STB_SIZEGRIP, wx.ID_ANY )
 		bSizer16 = wx.BoxSizer( wx.HORIZONTAL )
 
 		self.m_panel314 = wx.Panel( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
@@ -76,23 +80,24 @@ class MyFrame ( wx.Frame ):
 		btns_sizer = wx.GridSizer( 0, 2, 0, 0 )
 
 		self.btn_start = wx.BitmapButton( self.btns_panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0 )
+		
 
-		self.btn_start.SetBitmap( wx.Bitmap( u"png/002-play.png", wx.BITMAP_TYPE_ANY ) )
+		self.btn_start.SetBitmap( wx.Bitmap( os.path.join('png', '002-play.png'), wx.BITMAP_TYPE_ANY ) )
 		btns_sizer.Add( self.btn_start, 0, wx.EXPAND, 5 )
 
 		self.btn_stop = wx.BitmapButton( self.btns_panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0 )
 
-		self.btn_stop.SetBitmap( wx.Bitmap( u"png/001-stop.png", wx.BITMAP_TYPE_ANY ) )
+		self.btn_stop.SetBitmap( wx.Bitmap( os.path.join('png', '001-stop.png'), wx.BITMAP_TYPE_ANY ) )
 		btns_sizer.Add( self.btn_stop, 0, wx.EXPAND, 5 )
 
 		self.btn_pause = wx.BitmapButton( self.btns_panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0 )
 
-		self.btn_pause.SetBitmap( wx.Bitmap( u"png/003-pause.png", wx.BITMAP_TYPE_ANY ) )
+		self.btn_pause.SetBitmap( wx.Bitmap( os.path.join('png', '003-pause.png'), wx.BITMAP_TYPE_ANY ) )
 		btns_sizer.Add( self.btn_pause, 0, wx.EXPAND, 5 )
 
 		self.btn_contin = wx.BitmapButton( self.btns_panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0 )
 
-		self.btn_contin.SetBitmap( wx.Bitmap( u"png/004-shooting.png", wx.BITMAP_TYPE_ANY ) )
+		self.btn_contin.SetBitmap( wx.Bitmap( os.path.join('png', '004-shooting.png'), wx.BITMAP_TYPE_ANY ) )
 		btns_sizer.Add( self.btn_contin, 0, wx.EXPAND, 5 )
 
 
@@ -110,9 +115,15 @@ class MyFrame ( wx.Frame ):
 
 		self.hslice_figure = Figure(tight_layout=True, figsize=(1,1))
 		self.hslice_axes = self.hslice_figure.add_subplot(111)
+		self.hslice_axes.tick_params(axis='x', labelsize='xx-small')
+		self.hslice_axes.tick_params(axis='y', labelsize='xx-small')
+		self.hslice_axes.grid(color='grey', linestyle='-', linewidth=0.1)
+
+
 		# self.hslice_axes.set_aspect('equal', adjustable='box')
         # self.cursor = Cursor(self.axes, useblit=True, color="red")
 		self.hslice_canvas = FigureCanvas(self.hslice_panel, wx.ID_ANY, self.hslice_figure)
+		# self.hslice_axes.invert_xaxis()
 
 		# self.m_button5 = wx.Button( self.hslice_panel, wx.ID_ANY, u"MyButton", wx.DefaultPosition, wx.DefaultSize, 0 )
 		hslice_sizer.Add( self.hslice_canvas, 1, wx.ALL|wx.EXPAND, 5)
@@ -128,6 +139,10 @@ class MyFrame ( wx.Frame ):
 
 		self.vslice_figure = Figure(tight_layout=True, figsize=(1,1))
 		self.vslice_axes = self.vslice_figure.add_subplot(111)
+		self.vslice_axes.tick_params(axis='x', rotation=90, labelsize='xx-small')
+		self.vslice_axes.tick_params(axis='y', labelsize='xx-small')
+		self.vslice_axes.grid(color='grey', linestyle='-', linewidth=0.1)
+
 		# self.hslice_axes.set_aspect('equal', adjustable='box')
         # self.cursor = Cursor(self.axes, useblit=True, color="red")
 		self.vslice_canvas = FigureCanvas(self.vslice_panel, wx.ID_ANY, self.vslice_figure)
@@ -147,6 +162,7 @@ class MyFrame ( wx.Frame ):
 		self.image_figure = Figure(tight_layout=True)
 		self.image_axes = self.image_figure.add_subplot()
 		self.image_axes.set_aspect('equal', adjustable='box')
+		self.image_axes.invert_yaxis()
         # self.cursor = Cursor(self.axes, useblit=True, color="red")
 		self.image_canvas = FigureCanvas(self.image_panel, wx.ID_ANY, self.image_figure)
 		self.image_canvas.mpl_connect('motion_notify_event', self.update_status_bar)
@@ -285,7 +301,7 @@ class MyFrame ( wx.Frame ):
 		self.Bind( wx.EVT_MENU, self.on_save_as, id = self.menu_save_as.GetId() )
 		self.btn_start.Bind( wx.EVT_BUTTON, self.on_start )
 		self.btn_stop.Bind( wx.EVT_BUTTON, self.on_stop )
-		self.btn_pause.Bind( wx.EVT_BUTTON, self.on_pause )
+		self.btn_pause.Bind( wx.EVT_BUTTON, self.on_refresh )
 		self.btn_contin.Bind( wx.EVT_BUTTON, self.on_contin )
 		self.text_exp_time.Bind( wx.EVT_TEXT_ENTER, self.on_exp_time )
 		self.text_frames.Bind( wx.EVT_TEXT_ENTER, self.on_frames )
@@ -297,8 +313,13 @@ class MyFrame ( wx.Frame ):
 		self.slider_white.Bind( wx.EVT_SCROLL, self.on_white )
 		self.slider_gamma.Bind( wx.EVT_SCROLL, self.on_gamma )
 
+		self.cam = None
+		self.cam = init_camera()
+		if self.cam != None:
+			self.status_bar.SetStatusText('Controller Status: Connected', 3)
+
 	def __del__( self ):
-		pass
+		destroy_camera(self.cam)
 
 
 	# Virtual event handlers, override them in your derived class
@@ -392,32 +413,58 @@ class MyFrame ( wx.Frame ):
 
 	def draw_data(self) -> None:
 		self.image_axes.clear()
-		self.image_axes.imshow(self.single_frame)
+		self.image_axes.imshow(self.single_frame, origin='upper')
+		self.image_axes.invert_yaxis()
+		# self.vslice_axes.invert_yaxis()
 		# self.cursor = Cursor(self.image_axes, color='black', linewidth=2)
 		self.image_canvas.draw()
+		self.background = self.image_canvas.copy_from_bbox(self.image_axes.bbox)
+		# print(self.background)
 
 	def update_status_bar(self, event) -> None:
 		if event.inaxes:
 			x, y = event.xdata, event.ydata
-			self.status_bar.SetStatusText("x= "+str(round(x))+"  y="+str(round(y)))
+			self.status_bar.SetStatusText("x= "+str(round(x))+"  y="+str(round(y)), 0)
 			
 	def change_cursor_coordinates(self, event) -> None:
 		self.image_canvas.SetCursor(wx.Cursor(wx.CURSOR_CROSS))
 
 	def on_press(self, event) -> None:
 		if event.inaxes:
-			self.draw_vslice(round(event.xdata))
-			self.draw_hslice(round(event.ydata))
+			x, y = event.xdata, event.ydata
+			self.draw_vslice(round(x))
+			self.draw_hslice(round(x))
+			self.image_canvas.restore_region(self.background)
+			vline = self.image_axes.axvline(x=x, color='black')
+			hline = self.image_axes.axhline(y=y, color='black')
+			self.image_axes.draw_artist(vline)
+			self.image_axes.draw_artist(hline)
+			self.image_canvas.blit(vline.axes.bbox)
+			self.image_canvas.blit(hline.axes.bbox)
+			# self.image_axes.axvline(x=x, color='black')
+			# self.image_axes.axhline(y=y, color='black')
+			# self.image_canvas.draw()
 
 	def draw_hslice(self, y) -> None:
 		self.hslice_axes.clear()
 		self.hslice_axes.plot(self.single_frame[:, y])
+		self.hslice_axes.tick_params(axis='x', labelsize='xx-small')
+		self.hslice_axes.tick_params(axis='y', labelsize='xx-small')
+		self.hslice_axes.grid(color='grey', linestyle='-', linewidth=0.1)
 		self.hslice_canvas.draw()
 
 	def draw_vslice(self, x):
 		self.vslice_axes.clear()
 		self.vslice_axes.plot(self.single_frame[x, :], FILLER)
+		self.vslice_axes.tick_params(axis='x', rotation=90, labelsize='xx-small')
+		self.vslice_axes.tick_params(axis='y', labelsize='xx-small')
+		self.vslice_axes.grid(color='grey', linestyle='-', linewidth=0.1)
+		self.vslice_axes.invert_xaxis()
 		self.vslice_canvas.draw()
+
+	def on_refresh(self, event) -> None:
+		if self.background != None:
+			self.draw_data()
 
 
 
