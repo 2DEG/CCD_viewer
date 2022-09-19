@@ -1,5 +1,7 @@
 import numpy as np  # type: ignore
-
+from picam import PICam
+from picam.picam_types import PicamReadoutControlMode, PicamAdcQuality, PicamAdcAnalogGain, PicamTriggerDetermination
+from picam.picam_types import PicamTriggerResponse
 from typing import Tuple, Optional, List, Union
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 from matplotlib.patches import Rectangle
@@ -11,6 +13,36 @@ import os
 
 
 
+def init_camera() -> None:
+    cam = PICam()
+    cam.loadLibrary()
+
+    try:
+        # Initialize to a DemoCamera
+        cam.getAvailableCameras()
+
+        # Connect to DemoCamera
+        cam.connect(camID=None)
+        # Set camera temperature
+        cam.setParameter("SensorTemperatureSetPoint", -70)
+        print(f"Camera temperature: {cam.getParameter('SensorTemperatureReading'):.1f} C")
+
+        # Set parameters
+        cam.setParameter("ExposureTime", 10) # Exposure time in ms
+
+        cam.sendConfiguration()
+    except:
+        print('Error while initialization')
+        return None
+
+    return cam
+
+def destroy_camera(cam) -> None:
+    try:
+        cam.disconnect()
+        cam.unloadLibrary()
+    except:
+        print('Error while disconnection')
 
 def draw_corr(
     graphNum,
