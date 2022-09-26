@@ -7,7 +7,9 @@ from matplotlib.widgets import Cursor
 from matplotlib.transforms import Affine2D
 from matplotlib.figure import Figure  # type: ignore
 
-
+from threading import Thread
+from wx.lib.pubsub import pub as Publisher
+import queue
 
 from typing import Tuple, Optional, List, Union
 
@@ -22,6 +24,37 @@ import os
 
 
 FILLER = np.linspace(1023.0, 0.0, 1024)
+FILLER_DEMO = np.linspace(511.0, 0.0, 512)
+EXP_TIME_LIMIT = 10
+
+DEMO = True
+
+if DEMO:
+	FILLER = FILLER_DEMO
+
+class CameraThread(Thread):
+	""""Camera communication thread"""
+
+	def __init__(self, q, *args, **kwargs):
+		self.q = q
+		# Thread.__init__(self)
+		super().__init__(*args, **kwargs)
+		self.start()
+
+	def acquire(self, cam=None, n_frames=1):
+		data = None
+		if cam != None:
+			try:
+				data = cam.readNFrames(N = n_frames)[0][0]
+			except:
+				print('Can not read continuously')
+				return
+		
+		self.q.put(data)
+		wx.CallAfter(Publisher.sendMessage, "frames_ready")
+
+
+	
 
 class MyApp(wx.App):
     """Main application class."""
@@ -314,12 +347,31 @@ class MyFrame ( wx.Frame ):
 		self.slider_gamma.Bind( wx.EVT_SCROLL, self.on_gamma )
 
 		self.cam = None
-		self.cam = init_camera()
+		self.n_frames = 1
+
+		self.q = queue.Queue()
+		Publisher.subscribe(self.on_img_update, "frames_ready")
+		self.counter = 0
+		
+		if DEMO:
+			self.cam = init_camera(demo=DEMO)
+		else:
+			self.cam = init_camera()
+		
 		if self.cam != None:
 			self.status_bar.SetStatusText('Controller Status: Connected', 3)
+			self.status_bar.SetStatusText('Current exposition in [ms]: 10', 2)
+		elif self.cam == None:
+			self.status_bar.SetStatusText('Controller Status: Not Found', 3)
 
 	def __del__( self ):
 		destroy_camera(self.cam)
+
+	def on_img_update(self):
+		self.single_frame = self.q.get()
+		self.draw_data()
+		self.counter += 1
+		self.status_bar.SetStatusText(str(self.counter), 1)
 
 
 	# Virtual event handlers, override them in your derived class
@@ -373,6 +425,8 @@ class MyFrame ( wx.Frame ):
 		event.Skip()
 
 	def on_start( self, event ):
+		self.single_frame = self.cam.readNFrames(N = self.n_frames)[0][0]
+		self.draw_data()
 		event.Skip()
 
 	def on_stop( self, event ):
@@ -382,13 +436,38 @@ class MyFrame ( wx.Frame ):
 		event.Skip()
 
 	def on_contin( self, event ):
-		event.Skip()
+		thr = CameraThread(self.q)
+		for i in range(5):
+			thr.acquire(self.cam)
+		thr.join()
 
 	def on_exp_time( self, event ):
-		event.Skip()
+		time = int(event.GetString())
+		if time < EXP_TIME_LIMIT:
+			print("Low limit of exposition time")
+			self.text_exp_time.SetValue(str(EXP_TIME_LIMIT))
+			self.status_bar.SetStatusText('Current exposition in [ms]: {}'.format(EXP_TIME_LIMIT), 2)
+			return None
+		if self.cam != None:
+			try:
+				self.cam.setParameter("ExposureTime", round(time))
+				self.cam.sendConfiguration()
+			except:
+				print("Can not set exp time!")
+				return None
+			self.status_bar.SetStatusText('Current exposition in [ms]: {}'.format(time), 2)
+		# event.Skip()
 
 	def on_frames( self, event ):
-		event.Skip()
+		n_frames = int(event.GetString())
+		if n_frames < 1:
+			print("Not enough frames")
+			self.text_frames.SetValue('1')
+			return None
+		if self.cam != None:
+			self.n_frames = n_frames
+		print("Updated frames!")
+		# event.Skip()
 
 	def on_targ_temp( self, event ):
 		event.Skip()

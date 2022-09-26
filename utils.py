@@ -13,26 +13,30 @@ import os
 
 
 
-def init_camera() -> None:
+def init_camera(demo=False) -> None:
     cam = PICam()
     cam.loadLibrary()
 
     try:
         # Initialize to a DemoCamera
         cam.getAvailableCameras()
+    except:
+        print('Camera not found')
 
+    try:
+        cam.getAvailableCameras(demo=demo)
         # Connect to DemoCamera
         cam.connect(camID=None)
         # Set camera temperature
         cam.setParameter("SensorTemperatureSetPoint", -70)
         print(f"Camera temperature: {cam.getParameter('SensorTemperatureReading'):.1f} C")
 
-        # Set parameters
+        # # Set parameters
         cam.setParameter("ExposureTime", 10) # Exposure time in ms
 
         cam.sendConfiguration()
     except:
-        print('Error while initialization')
+        print('Error connecting to demo camera')
         return None
 
     return cam
